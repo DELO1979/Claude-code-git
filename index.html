@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>亚马逊搜索词加否 Agent</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f6f8;
+    --card: #ffffff;
+    --primary: #ff9900;
+    --primary-dark: #e88a00;
+    --danger: #e53935;
+    --ok: #43a047;
+    --text: #232f3e;
+    --muted: #6b7280;
+    --border: #e3e6ea;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.5;
+  }
+  header {
+    background: var(--text); color: #fff; padding: 18px 28px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  header h1 { font-size: 19px; margin: 0; font-weight: 600; }
+  header .badge { background: var(--primary); color: #232f3e; font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; }
+  .wrap { max-width: 1240px; margin: 22px auto; padding: 0 20px; }
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+    padding: 20px 22px; margin-bottom: 18px;
+  }
+  .card h2 { font-size: 15px; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
+  .card h2 .num { background: var(--primary); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+  label.field { display: block; font-size: 13px; }
+  label.field span { display: block; color: var(--muted); margin-bottom: 5px; }
+  label.field small { color: var(--muted); font-weight: 400; }
+  input[type=number], input[type=text], textarea {
+    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
+    font-size: 14px; font-family: inherit;
+  }
+  textarea { resize: vertical; min-height: 70px; }
+  .toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; padding: 8px 0; }
+  .toggle input { width: 16px; height: 16px; accent-color: var(--primary); }
+  .drop {
+    border: 2px dashed var(--border); border-radius: 10px; padding: 36px; text-align: center;
+    color: var(--muted); cursor: pointer; transition: .15s; background: #fafbfc;
+  }
+  .drop.hover { border-color: var(--primary); background: #fff8ec; color: var(--text); }
+  .drop strong { color: var(--primary); }
+  .btn {
+    background: var(--primary); color: #fff; border: none; padding: 10px 20px; border-radius: 7px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+  }
+  .btn:hover { background: var(--primary-dark); }
+  .btn.ghost { background: #fff; color: var(--text); border: 1px solid var(--border); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+  .stat { flex: 1; min-width: 130px; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .stat .v { font-size: 24px; font-weight: 700; }
+  .stat .l { font-size: 12px; color: var(--muted); }
+  .stat.flag .v { color: var(--danger); }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { background: #fafbfc; font-weight: 600; position: sticky; top: 0; cursor: pointer; user-select: none; }
+  th:hover { background: #f0f1f3; }
+  td.term { white-space: normal; max-width: 320px; }
+  .scroll { overflow-x: auto; max-height: 560px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+  .tag { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 4px; margin: 1px 2px 1px 0; font-weight: 600; }
+  .tag.r1 { background: #ffeaea; color: #c62828; }
+  .tag.r2 { background: #fff3e0; color: #ef6c00; }
+  .tag.r3 { background: #ede7f6; color: #5e35b1; }
+  tr.flagged { background: #fffbf5; }
+  .num-cell { text-align: right; font-variant-numeric: tabular-nums; }
+  .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .toolbar .grow { flex: 1; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .hidden { display: none; }
+  .filter-chip { font-size: 13px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; background: #fff; }
+  .filter-chip.active { background: var(--text); color: #fff; border-color: var(--text); }
+  .err { background: #ffeaea; color: #c62828; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; }
+  .colmap { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .colmap code { background: #f0f1f3; padding: 1px 5px; border-radius: 3px; color: var(--text); }
+</style>
+</head>
+<body>
+<header>
+  <h1>亚马逊搜索词加否 Agent</h1>
+  <span class="badge">本地运行 · 数据不外传</span>
+</header>
+
+<div class="wrap">
+
+  <!-- 1. 规则设置 -->
+  <div class="card">
+    <h2><span class="num">1</span>加否规则与阈值</h2>
+    <div class="grid">
+      <div>
+        <label class="toggle"><input type="checkbox" id="r1on" checked> <b>规则①</b> 点击多不出单</label>
+        <label class="field"><span>点击数 ≥</span><input type="number" id="r1clicks" value="10" min="1"></label>
+        <p class="hint">点击达到阈值但订单为 0，判定为烧钱无转化。</p>
+      </div>
+      <div>
+        <label class="toggle"><input type="checkbox" id="r2on" checked> <b>规则②</b> 转化率过低</label>
+        <label class="field"><span>转化率 &lt; (%)</span><input type="number" id="r2cvr" value="3" min="0" step="0.1"></label>
+        <label class="field"><span>且点击数 ≥ <small>(样本足够才判断)</small></span><input type="number" id="r2clicks" value="15" min="1"></label>
+        <p class="hint">有一定点击量但转化率低于阈值。</p>
+      </div>
+      <div>
+        <label class="toggle"><input type="checkbox" id="r3on" checked> <b>规则③</b> 无关词黑名单</label>
+        <label class="field"><span>无关词 / 竞品词（每行一个，或逗号分隔）</span>
+          <textarea id="r3words" placeholder="例如：&#10;free&#10;cheap&#10;competitor brand&#10;某竞品牌"></textarea></label>
+        <p class="hint">搜索词包含任一关键词即判定无关（不区分大小写）。</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. 上传 -->
+  <div class="card">
+    <h2><span class="num">2</span>上传搜索词报告</h2>
+    <div class="drop" id="drop">
+      <p>📄 <strong>点击选择</strong> 或拖拽文件到此处</p>
+      <p style="font-size:13px;margin:4px 0 0">支持 .xlsx / .xls / .csv（亚马逊广告→搜索词报告导出）</p>
+    </div>
+    <input type="file" id="file" accept=".xlsx,.xls,.csv" class="hidden">
+    <div id="colmap" class="colmap"></div>
+    <div id="err"></div>
+  </div>
+
+  <!-- 3. 结果 -->
+  <div class="card hidden" id="resultCard">
+    <h2><span class="num">3</span>分析结果</h2>
+    <div class="stats" id="stats"></div>
+    <div class="toolbar">
+      <span class="filter-chip active" data-f="flagged">仅看建议加否</span>
+      <span class="filter-chip" data-f="all">全部</span>
+      <input type="text" id="search" class="grow" placeholder="搜索词内筛选…" style="max-width:280px">
+      <button class="btn" id="export">⬇ 导出加否清单 (CSV)</button>
+    </div>
+    <div class="scroll">
+      <table id="tbl"><thead></thead><tbody></tbody></table>
+    </div>
+    <p class="hint">点击表头可排序。导出的清单可直接整理后回到亚马逊后台批量添加否定关键词。</p>
+  </div>
+
+</div>
+
+<script>
+// ---------- 列名智能匹配 ----------
+const COLDEFS = {
+  term:    ["customer search term","search term","客户搜索词","搜索词","用户搜索词"],
+  impr:    ["impressions","展示量","曝光量"],
+  clicks:  ["clicks","点击量","点击次数","点击"],
+  spend:   ["spend","花费","支出","广告花费"],
+  sales:   ["7 day total sales","total sales","sales","销售额","总销售额","7天总销售额"],
+  orders:  ["7 day total orders","total orders","orders","订单","订单量","订单数","7天总订单数","total orders (#)","7 day total orders (#)"],
+  acos:    ["total advertising cost of sales","acos","广告成本销售比","acos%"],
+  cvr:     ["7 day conversion rate","conversion rate","转化率","cvr"],
+  campaign:["campaign name","广告活动名称","广告活动","campaign"],
+  matchType:["match type","匹配类型"],
+  targeting:["targeting","投放","定位"]
+};
+function normHead(s){ return String(s||"").toLowerCase().replace(/[\s%（）()#]/g,"").trim(); }
+function matchColumns(headers){
+  const map = {};
+  const normd = headers.map(normHead);
+  for (const key in COLDEFS){
+    for (const cand of COLDEFS[key]){
+      const nc = normHead(cand);
+      let idx = normd.findIndex(h => h === nc);
+      if (idx === -1) idx = normd.findIndex(h => h.includes(nc) || nc.includes(h) && h.length>2);
+      if (idx !== -1){ map[key] = idx; break; }
+    }
+  }
+  return map;
+}
+function toNum(v){
+  if (v == null) return 0;
+  if (typeof v === "number") return v;
+  const n = parseFloat(String(v).replace(/[%$,，¥\s]/g,""));
+  return isNaN(n) ? 0 : n;
+}
+
+// ---------- 状态 ----------
+let rows = [];        // 解析后的标准化数据
+let colMap = {};
+let currentFilter = "flagged";
+let sortKey = "spend", sortDir = -1;
+
+// ---------- 文件读取 ----------
+const drop = document.getElementById("drop");
+const fileInput = document.getElementById("file");
+drop.onclick = () => fileInput.click();
+drop.ondragover = e => { e.preventDefault(); drop.classList.add("hover"); };
+drop.ondragleave = () => drop.classList.remove("hover");
+drop.ondrop = e => { e.preventDefault(); drop.classList.remove("hover"); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); };
+fileInput.onchange = e => { if (e.target.files[0]) handleFile(e.target.files[0]); };
+
+function showErr(msg){ document.getElementById("err").innerHTML = msg ? `<div class="err">${msg}</div>` : ""; }
+
+function handleFile(file){
+  showErr("");
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      if (typeof XLSX === "undefined") { showErr("解析库未能加载（可能是网络限制）。请改用 CSV 文件，或检查网络后刷新页面。"); return; }
+      const wb = XLSX.read(e.target.result, { type: "array" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      let aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
+      aoa = aoa.filter(r => r.some(c => String(c).trim() !== ""));
+      // 找到表头行（包含“搜索词”或 search term 的行）
+      let hrow = aoa.findIndex(r => r.some(c => /搜索词|search\s*term/i.test(String(c))));
+      if (hrow === -1) hrow = 0;
+      const headers = aoa[hrow];
+      colMap = matchColumns(headers);
+      if (colMap.term == null){ showErr("未识别到“搜索词”列，请确认上传的是搜索词报告。已识别表头：" + headers.join(" | ")); return; }
+      const dataRows = aoa.slice(hrow + 1);
+      rows = dataRows.map(r => buildRow(r)).filter(r => r.term);
+      renderColMap(headers);
+      analyze();
+    } catch(err){ showErr("文件解析失败：" + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function buildRow(r){
+  const g = k => colMap[k] != null ? r[colMap[k]] : undefined;
+  const clicks = toNum(g("clicks"));
+  const orders = toNum(g("orders"));
+  const spend  = toNum(g("spend"));
+  const sales  = toNum(g("sales"));
+  let cvr = colMap.cvr != null ? toNum(g("cvr")) : (clicks > 0 ? orders / clicks * 100 : 0);
+  // 若转化率列是 0~1 小数，转成百分比
+  if (colMap.cvr != null && cvr > 0 && cvr <= 1 && orders/Math.max(clicks,1) <= 1) cvr = cvr * 100;
+  let acos = colMap.acos != null ? toNum(g("acos")) : (sales > 0 ? spend / sales * 100 : 0);
+  if (colMap.acos != null && acos > 0 && acos <= 1) acos = acos * 100;
+  return {
+    term: String(g("term")||"").trim(),
+    impr: toNum(g("impr")), clicks, spend, sales, orders, cvr, acos,
+    campaign: String(g("campaign")||""), matchType: String(g("matchType")||"")
+  };
+}
+
+function renderColMap(headers){
+  const labels = { term:"搜索词", clicks:"点击", spend:"花费", sales:"销售额", orders:"订单", cvr:"转化率", acos:"ACOS" };
+  const parts = [];
+  for (const k in labels){
+    if (colMap[k] != null) parts.push(`${labels[k]} ← <code>${headers[colMap[k]]}</code>`);
+    else if (k==="cvr"||k==="acos") parts.push(`${labels[k]} ← <code>自动计算</code>`);
+  }
+  document.getElementById("colmap").innerHTML = "已识别列：" + parts.join("　");
+}
+
+// ---------- 分析 ----------
+function getRules(){
+  const blackRaw = document.getElementById("r3words").value;
+  const black = blackRaw.split(/[\n,，]/).map(s=>s.trim().toLowerCase()).filter(Boolean);
+  return {
+    r1: { on: r1on.checked, clicks: toNum(r1clicks.value) },
+    r2: { on: r2on.checked, cvr: toNum(r2cvr.value), clicks: toNum(r2clicks.value) },
+    r3: { on: r3on.checked, words: black }
+  };
+}
+function evalRow(row, rules){
+  const reasons = [];
+  if (rules.r1.on && row.clicks >= rules.r1.clicks && row.orders === 0)
+    reasons.push({ c:"r1", t:`点击${row.clicks}无单` });
+  if (rules.r2.on && row.clicks >= rules.r2.clicks && row.orders > 0 && row.cvr < rules.r2.cvr)
+    reasons.push({ c:"r2", t:`转化率${row.cvr.toFixed(1)}%偏低` });
+  if (rules.r3.on && rules.r3.words.length){
+    const lt = row.term.toLowerCase();
+    const hit = rules.r3.words.find(w => lt.includes(w));
+    if (hit) reasons.push({ c:"r3", t:`含无关词「${hit}」` });
+  }
+  return reasons;
+}
+
+function analyze(){
+  const rules = getRules();
+  rows.forEach(r => r.reasons = evalRow(r, rules));
+  document.getElementById("resultCard").classList.remove("hidden");
+  renderStats();
+  renderTable();
+}
+
+function renderStats(){
+  const flagged = rows.filter(r => r.reasons.length);
+  const wasteSpend = flagged.reduce((s,r)=> s + (r.orders===0 ? r.spend : 0), 0);
+  const html = [
+    ["搜索词总数", rows.length, ""],
+    ["建议加否", flagged.length, "flag"],
+    ["无效花费(估)", "$" + wasteSpend.toFixed(2), "flag"],
+    ["总花费", "$" + rows.reduce((s,r)=>s+r.spend,0).toFixed(2), ""]
+  ].map(([l,v,c]) => `<div class="stat ${c}"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
+  document.getElementById("stats").innerHTML = html;
+}
+
+const COLS = [
+  ["term","搜索词","term"],["clicks","点击","num"],["orders","订单","num"],
+  ["spend","花费","num"],["sales","销售额","num"],["cvr","转化率%","num"],
+  ["acos","ACOS%","num"],["reasons","加否原因","reasons"]
+];
+function renderTable(){
+  const tbl = document.getElementById("tbl");
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  let list = currentFilter === "flagged" ? rows.filter(r=>r.reasons.length) : rows.slice();
+  if (q) list = list.filter(r => r.term.toLowerCase().includes(q));
+  list.sort((a,b)=>{
+    let va=a[sortKey], vb=b[sortKey];
+    if (sortKey==="term"){ va=va||""; vb=vb||""; return va.localeCompare(vb)*sortDir; }
+    if (sortKey==="reasons"){ va=a.reasons.length; vb=b.reasons.length; }
+    return (va-vb)*sortDir;
+  });
+  tbl.querySelector("thead").innerHTML = "<tr>" + COLS.map(c=>{
+    const arrow = sortKey===c[0] ? (sortDir<0?" ▼":" ▲") : "";
+    return `<th data-k="${c[0]}">${c[1]}${arrow}</th>`;
+  }).join("") + "</tr>";
+  tbl.querySelectorAll("th").forEach(th => th.onclick = () => {
+    const k = th.dataset.k;
+    if (sortKey===k) sortDir*=-1; else { sortKey=k; sortDir = k==="term"?1:-1; }
+    renderTable();
+  });
+  const tagName = { r1:"r1", r2:"r2", r3:"r3" };
+  tbl.querySelector("tbody").innerHTML = list.map(r=>{
+    const reasons = r.reasons.map(x=>`<span class="tag ${tagName[x.c]}">${x.t}</span>`).join("") || "—";
+    const fmt = (v,d=2)=> Number(v).toFixed(d);
+    return `<tr class="${r.reasons.length?'flagged':''}">
+      <td class="term">${escapeHtml(r.term)}</td>
+      <td class="num-cell">${r.clicks}</td>
+      <td class="num-cell">${r.orders}</td>
+      <td class="num-cell">${fmt(r.spend)}</td>
+      <td class="num-cell">${fmt(r.sales)}</td>
+      <td class="num-cell">${fmt(r.cvr,1)}</td>
+      <td class="num-cell">${r.acos?fmt(r.acos,1):'—'}</td>
+      <td>${reasons}</td>
+    </tr>`;
+  }).join("") || `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">没有符合条件的搜索词</td></tr>`;
+}
+function escapeHtml(s){ return s.replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+// ---------- 交互 ----------
+document.querySelectorAll(".filter-chip").forEach(chip => chip.onclick = () => {
+  document.querySelectorAll(".filter-chip").forEach(c=>c.classList.remove("active"));
+  chip.classList.add("active"); currentFilter = chip.dataset.f; renderTable();
+});
+document.getElementById("search").oninput = renderTable;
+// 改阈值即时重算
+["r1on","r1clicks","r2on","r2cvr","r2clicks","r3on","r3words"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", ()=>{ if (rows.length) analyze(); });
+});
+
+// ---------- 导出 ----------
+document.getElementById("export").onclick = () => {
+  const flagged = rows.filter(r=>r.reasons.length);
+  if (!flagged.length){ alert("当前没有建议加否的搜索词"); return; }
+  const head = ["搜索词","点击","订单","花费","销售额","转化率%","ACOS%","加否原因","建议匹配类型","广告活动"];
+  const lines = [head.join(",")];
+  flagged.forEach(r=>{
+    const row = [r.term, r.clicks, r.orders, r.spend.toFixed(2), r.sales.toFixed(2),
+      r.cvr.toFixed(1), r.acos?r.acos.toFixed(1):"", r.reasons.map(x=>x.t).join(" / "),
+      "精准否定(Negative Exact)", r.campaign];
+    lines.push(row.map(csvCell).join(","));
+  });
+  const blob = new Blob(["﻿"+lines.join("\n")], { type:"text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "加否清单_" + new Date().toISOString().slice(0,10) + ".csv";
+  a.click();
+};
+function csvCell(v){ const s=String(v??""); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+</script>
+</body>
+</html>
