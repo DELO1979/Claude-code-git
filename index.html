@@ -108,31 +108,39 @@
   <!-- 3. AI 增强（可选） -->
   <div class="card">
     <h2><span class="num">3</span>AI 语义复核（可选 · 接 DeepSeek 等大模型）</h2>
-    <p class="hint" style="margin-top:0">本地引擎靠词面对比，分不清同义词。开启后，把「疑似无关」的词连同 Listing 一起发给大模型做语义判断，更准。<b>注意：开启即把这些搜索词发送到你填写的 API 服务商</b>（不再是纯本地）。</p>
-    <div class="grid" style="margin-top:12px">
+    <p class="hint" style="margin-top:0">本地引擎靠词面对比，分不清同义词。开启后，把「疑似无关」的词连同 Listing 一起发给你选的大模型做语义判断，更准。<b>注意：开启即把这些搜索词发送到你填写的 API 服务商</b>（不再是纯本地）。</p>
+
+    <div class="toolbar" style="margin:12px 0 4px">
+      <label class="field" style="margin:0;flex:1;min-width:200px"><span>已保存的模型（自由切换）</span>
+        <select id="aiSaved" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px"></select></label>
+      <button class="btn ghost" id="aiSaveBtn" style="align-self:flex-end">💾 保存为新模型</button>
+      <button class="btn ghost" id="aiDelBtn" style="align-self:flex-end">🗑 删除</button>
+      <span class="filter-chip" id="aiQuickDeepseek" style="align-self:flex-end">填入 DeepSeek 模板</span>
+      <span class="filter-chip" id="aiQuickOpenai" style="align-self:flex-end">填入 OpenAI 模板</span>
+    </div>
+
+    <div class="grid" style="margin-top:8px">
       <div>
-        <label class="field"><span>服务商预设</span>
-          <select id="aiPreset" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px">
-            <option value="deepseek">DeepSeek（深度求索）</option>
-            <option value="openai">OpenAI 兼容</option>
-            <option value="moonshot">Moonshot / Kimi</option>
-            <option value="custom">自定义</option>
-          </select></label>
+        <label class="field"><span>API 地址（完整 chat completions 接口）</span>
+          <input type="text" id="aiBase" placeholder="https://api.deepseek.com/chat/completions"></label>
       </div>
       <div>
-        <label class="field"><span>API 地址（base URL）</span>
-          <input type="text" id="aiBase" value="https://api.deepseek.com/chat/completions"></label>
-      </div>
-      <div>
-        <label class="field"><span>模型名</span>
-          <input type="text" id="aiModel" value="deepseek-chat"></label>
+        <label class="field"><span>模型名（自由输入任意模型）</span>
+          <input type="text" id="aiModel" placeholder="deepseek-chat / gpt-4o / kimi-k2 ..."></label>
       </div>
       <div>
         <label class="field"><span>API Key <small>（仅存于本浏览器，不上传别处）</small></span>
           <input type="password" id="aiKey" placeholder="sk-..." autocomplete="off"></label>
       </div>
+      <div>
+        <label class="field"><span>请求格式</span>
+          <select id="aiFormat" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+            <option value="openai">OpenAI 兼容（DeepSeek/Kimi/通义/OpenAI 等绝大多数）</option>
+            <option value="anthropic">Anthropic（Claude messages 接口）</option>
+          </select></label>
+      </div>
     </div>
-    <p class="hint">DeepSeek 申请地址：platform.deepseek.com。若浏览器报 CORS 跨域错误，说明该服务商不允许网页直连，需自建代理——可换支持跨域的服务商。</p>
+    <p class="hint">只要模型提供 <b>OpenAI 兼容</b> 的 chat completions 接口，填地址+模型名+Key 就能用，模型名随你填。点「保存为新模型」可存多套配置随时切换。若浏览器报 CORS 跨域错误，说明该服务商不允许网页直连，需自建代理或换支持跨域的服务商。</p>
   </div>
 
   <!-- 4. 上传 -->
@@ -385,18 +393,40 @@ document.getElementById("search").oninput = renderTable;
   document.getElementById(id).addEventListener("input", ()=>{ if (rawRows.length) analyze(); });
 });
 
-// ---------- AI 语义复核 ----------
-const PRESETS = {
-  deepseek: { base:"https://api.deepseek.com/chat/completions", model:"deepseek-chat" },
-  openai:   { base:"https://api.openai.com/v1/chat/completions", model:"gpt-4o-mini" },
-  moonshot: { base:"https://api.moonshot.cn/v1/chat/completions", model:"moonshot-v1-8k" },
-  custom:   { base:"", model:"" }
-};
-document.getElementById("aiPreset").onchange = e => {
-  const p = PRESETS[e.target.value];
-  if (p && e.target.value!=="custom"){ aiBase.value = p.base; aiModel.value = p.model; }
-};
+// ---------- AI 语义复核：模型管理 ----------
 function setAiStatus(msg, color){ const el=document.getElementById("aiStatus"); el.innerHTML=msg; el.style.color=color||"var(--muted)"; }
+const LS_KEY = "asin_kw_ai_models";
+function loadModels(){ try{ return JSON.parse(localStorage.getItem(LS_KEY))||[]; }catch{ return []; } }
+function saveModels(list){ localStorage.setItem(LS_KEY, JSON.stringify(list)); }
+function refreshModelSelect(selectName){
+  const sel = document.getElementById("aiSaved"), list = loadModels();
+  sel.innerHTML = '<option value="">— 未选择（手动填写下方）—</option>' +
+    list.map((m,i)=>`<option value="${i}">${escapeHtml(m.name)}（${escapeHtml(m.model)}）</option>`).join("");
+  if (selectName!=null){ const idx=list.findIndex(m=>m.name===selectName); if(idx>=0) sel.value=String(idx); }
+}
+function fillFields(m){ aiBase.value=m.base||""; aiModel.value=m.model||""; aiKey.value=m.key||""; document.getElementById("aiFormat").value=m.format||"openai"; }
+document.getElementById("aiSaved").onchange = e => {
+  const m = loadModels()[+e.target.value]; if (m) fillFields(m);
+};
+document.getElementById("aiSaveBtn").onclick = () => {
+  const name = prompt("给这个模型配置起个名字（如：DeepSeek、我的GPT4o）：");
+  if (!name) return;
+  const list = loadModels();
+  const cfg = { name:name.trim(), base:aiBase.value.trim(), model:aiModel.value.trim(), key:aiKey.value.trim(), format:document.getElementById("aiFormat").value };
+  const i = list.findIndex(m=>m.name===cfg.name);
+  if (i>=0) list[i]=cfg; else list.push(cfg);
+  saveModels(list); refreshModelSelect(cfg.name);
+  setAiStatus(`已保存模型「${cfg.name}」，下次可直接在下拉框选用。`, "var(--ok)");
+};
+document.getElementById("aiDelBtn").onclick = () => {
+  const sel = document.getElementById("aiSaved"); if (sel.value===""){ setAiStatus("请先在下拉框选中要删除的模型。","var(--danger)"); return; }
+  const list = loadModels(); const name = list[+sel.value]?.name;
+  list.splice(+sel.value,1); saveModels(list); refreshModelSelect();
+  setAiStatus(`已删除「${name}」。`);
+};
+document.getElementById("aiQuickDeepseek").onclick = () => { aiBase.value="https://api.deepseek.com/chat/completions"; aiModel.value="deepseek-chat"; document.getElementById("aiFormat").value="openai"; };
+document.getElementById("aiQuickOpenai").onclick = () => { aiBase.value="https://api.openai.com/v1/chat/completions"; aiModel.value="gpt-4o"; document.getElementById("aiFormat").value="openai"; };
+refreshModelSelect();
 
 document.getElementById("aiReview").onclick = async () => {
   const base = aiBase.value.trim(), key = aiKey.value.trim(), model = aiModel.value.trim();
@@ -409,17 +439,22 @@ document.getElementById("aiReview").onclick = async () => {
   targets = targets.slice(0, 60); // 控制单次请求量
   const btn = document.getElementById("aiReview"); btn.disabled = true;
   setAiStatus(`正在请求 ${model} 判断 ${targets.length} 个词…`);
+  const format = document.getElementById("aiFormat").value;
   const sys = "你是亚马逊广告优化专家。给定一个商品的Listing(标题+五点)和一批搜索词，判断每个搜索词与该商品是否相关。返回严格的JSON数组，每项形如{\"term\":\"原词\",\"relevant\":true或false,\"reason\":\"简短中文理由\"}。无关指：搜索该词的买家想要的不是这个商品(如品类不符、竞品牌、用途无关)。只返回JSON，不要多余文字。";
   const user = "Listing内容：\n" + listing.slice(0,3000) + "\n\n搜索词列表：\n" + targets.map(r=>r.term).join("\n");
+  let headers, body;
+  if (format === "anthropic"){
+    headers = { "Content-Type":"application/json", "x-api-key":key, "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true" };
+    body = { model, max_tokens:4000, system:sys, messages:[{role:"user",content:user}] };
+  } else { // openai 兼容
+    headers = { "Content-Type":"application/json", "Authorization":"Bearer "+key };
+    body = { model, temperature:0, messages:[{role:"system",content:sys},{role:"user",content:user}] };
+  }
   try {
-    const resp = await fetch(base, {
-      method:"POST",
-      headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+key },
-      body: JSON.stringify({ model, temperature:0, messages:[{role:"system",content:sys},{role:"user",content:user}] })
-    });
+    const resp = await fetch(base, { method:"POST", headers, body: JSON.stringify(body) });
     if (!resp.ok){ setAiStatus(`请求失败 ${resp.status}：${(await resp.text()).slice(0,200)}`,"var(--danger)"); btn.disabled=false; return; }
     const data = await resp.json();
-    let txt = data.choices?.[0]?.message?.content || "";
+    let txt = format==="anthropic" ? (data.content?.[0]?.text || "") : (data.choices?.[0]?.message?.content || "");
     txt = txt.replace(/```json|```/g,"").trim();
     const verdicts = JSON.parse(txt);
     const map = new Map(verdicts.map(v => [String(v.term).toLowerCase().trim(), v]));
