@@ -105,9 +105,39 @@
     <label class="toggle" style="margin-top:14px"><input type="checkbox" id="aggOn" checked> <b>按搜索词汇总多天数据后再判断</b> <span class="sub">（官方报告是按天明细，强烈建议开启）</span></label>
   </div>
 
-  <!-- 3. 上传 -->
+  <!-- 3. AI 增强（可选） -->
   <div class="card">
-    <h2><span class="num">3</span>上传搜索词报告</h2>
+    <h2><span class="num">3</span>AI 语义复核（可选 · 接 DeepSeek 等大模型）</h2>
+    <p class="hint" style="margin-top:0">本地引擎靠词面对比，分不清同义词。开启后，把「疑似无关」的词连同 Listing 一起发给大模型做语义判断，更准。<b>注意：开启即把这些搜索词发送到你填写的 API 服务商</b>（不再是纯本地）。</p>
+    <div class="grid" style="margin-top:12px">
+      <div>
+        <label class="field"><span>服务商预设</span>
+          <select id="aiPreset" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:14px">
+            <option value="deepseek">DeepSeek（深度求索）</option>
+            <option value="openai">OpenAI 兼容</option>
+            <option value="moonshot">Moonshot / Kimi</option>
+            <option value="custom">自定义</option>
+          </select></label>
+      </div>
+      <div>
+        <label class="field"><span>API 地址（base URL）</span>
+          <input type="text" id="aiBase" value="https://api.deepseek.com/chat/completions"></label>
+      </div>
+      <div>
+        <label class="field"><span>模型名</span>
+          <input type="text" id="aiModel" value="deepseek-chat"></label>
+      </div>
+      <div>
+        <label class="field"><span>API Key <small>（仅存于本浏览器，不上传别处）</small></span>
+          <input type="password" id="aiKey" placeholder="sk-..." autocomplete="off"></label>
+      </div>
+    </div>
+    <p class="hint">DeepSeek 申请地址：platform.deepseek.com。若浏览器报 CORS 跨域错误，说明该服务商不允许网页直连，需自建代理——可换支持跨域的服务商。</p>
+  </div>
+
+  <!-- 4. 上传 -->
+  <div class="card">
+    <h2><span class="num">4</span>上传搜索词报告</h2>
     <div class="drop" id="drop">
       <p>📄 <strong>点击选择</strong> 或拖拽文件到此处</p>
       <p style="font-size:13px;margin:4px 0 0">支持 .xlsx / .xls / .csv（广告 → 搜索词报告导出）</p>
@@ -117,16 +147,18 @@
     <div id="err"></div>
   </div>
 
-  <!-- 4. 结果 -->
+  <!-- 5. 结果 -->
   <div class="card hidden" id="resultCard">
-    <h2><span class="num">4</span>分析结果</h2>
+    <h2><span class="num">5</span>分析结果</h2>
     <div class="stats" id="stats"></div>
     <div class="toolbar">
       <span class="filter-chip active" data-f="flagged">仅看建议加否</span>
       <span class="filter-chip" data-f="all">全部</span>
       <input type="text" id="search" class="grow" placeholder="搜索词内筛选…" style="max-width:280px">
+      <button class="btn ghost" id="aiReview">🤖 AI 复核疑似无关</button>
       <button class="btn" id="export">⬇ 导出加否清单 (CSV)</button>
     </div>
+    <div id="aiStatus" class="hint"></div>
     <div class="scroll">
       <table id="tbl"><thead></thead><tbody></tbody></table>
     </div>
@@ -334,7 +366,7 @@ function renderTable(){
     const reasons = r.reasons.map(x=>`<span class="tag ${x.c}">${x.t}</span>`).join("") || "—";
     const f = (v,d=2)=> Number(v).toFixed(d);
     return `<tr class="${r.reasons.length?'flagged':''}">
-      <td class="term">${escapeHtml(r.term)}</td>
+      <td class="term"${r.aiReason?` title="${escapeHtml(r.aiReason)}"`:''}>${escapeHtml(r.term)}</td>
       <td class="num-cell">${r.clicks}</td><td class="num-cell">${r.orders}</td>
       <td class="num-cell">${f(r.spend)}</td><td class="num-cell">${f(r.sales)}</td>
       <td class="num-cell">${f(r.cvr,1)}</td><td class="num-cell">${r.acos?f(r.acos,1):'—'}</td>
@@ -352,6 +384,59 @@ document.getElementById("search").oninput = renderTable;
 ["r1on","r1clicks","r2on","r2cvr","r2clicks","r3on","r3words","aggOn","listing","extraRelevant"].forEach(id=>{
   document.getElementById(id).addEventListener("input", ()=>{ if (rawRows.length) analyze(); });
 });
+
+// ---------- AI 语义复核 ----------
+const PRESETS = {
+  deepseek: { base:"https://api.deepseek.com/chat/completions", model:"deepseek-chat" },
+  openai:   { base:"https://api.openai.com/v1/chat/completions", model:"gpt-4o-mini" },
+  moonshot: { base:"https://api.moonshot.cn/v1/chat/completions", model:"moonshot-v1-8k" },
+  custom:   { base:"", model:"" }
+};
+document.getElementById("aiPreset").onchange = e => {
+  const p = PRESETS[e.target.value];
+  if (p && e.target.value!=="custom"){ aiBase.value = p.base; aiModel.value = p.model; }
+};
+function setAiStatus(msg, color){ const el=document.getElementById("aiStatus"); el.innerHTML=msg; el.style.color=color||"var(--muted)"; }
+
+document.getElementById("aiReview").onclick = async () => {
+  const base = aiBase.value.trim(), key = aiKey.value.trim(), model = aiModel.value.trim();
+  const listing = document.getElementById("listing").value.trim();
+  if (!key){ setAiStatus("请先填写 API Key。","var(--danger)"); return; }
+  if (!listing){ setAiStatus("请先在第1栏粘贴 Listing 标题+五点，AI 才能判断相关性。","var(--danger)"); return; }
+  // 取所有「疑似无关」的词；没有就拿点击高的前若干词兜底
+  let targets = rows.filter(r => r.reasons.some(x => x.t==="疑似无关"));
+  if (!targets.length){ setAiStatus("当前没有被标记「疑似无关」的词。可在第1栏填 Listing 后重新分析，或本地引擎已认为都相关。"); return; }
+  targets = targets.slice(0, 60); // 控制单次请求量
+  const btn = document.getElementById("aiReview"); btn.disabled = true;
+  setAiStatus(`正在请求 ${model} 判断 ${targets.length} 个词…`);
+  const sys = "你是亚马逊广告优化专家。给定一个商品的Listing(标题+五点)和一批搜索词，判断每个搜索词与该商品是否相关。返回严格的JSON数组，每项形如{\"term\":\"原词\",\"relevant\":true或false,\"reason\":\"简短中文理由\"}。无关指：搜索该词的买家想要的不是这个商品(如品类不符、竞品牌、用途无关)。只返回JSON，不要多余文字。";
+  const user = "Listing内容：\n" + listing.slice(0,3000) + "\n\n搜索词列表：\n" + targets.map(r=>r.term).join("\n");
+  try {
+    const resp = await fetch(base, {
+      method:"POST",
+      headers:{ "Content-Type":"application/json", "Authorization":"Bearer "+key },
+      body: JSON.stringify({ model, temperature:0, messages:[{role:"system",content:sys},{role:"user",content:user}] })
+    });
+    if (!resp.ok){ setAiStatus(`请求失败 ${resp.status}：${(await resp.text()).slice(0,200)}`,"var(--danger)"); btn.disabled=false; return; }
+    const data = await resp.json();
+    let txt = data.choices?.[0]?.message?.content || "";
+    txt = txt.replace(/```json|```/g,"").trim();
+    const verdicts = JSON.parse(txt);
+    const map = new Map(verdicts.map(v => [String(v.term).toLowerCase().trim(), v]));
+    let confirmed=0, cleared=0;
+    targets.forEach(r => {
+      const v = map.get(r.term.toLowerCase().trim());
+      if (!v) return;
+      // 移除本地的「疑似无关」标记，换成 AI 结论
+      r.reasons = r.reasons.filter(x => x.t!=="疑似无关");
+      if (v.relevant === false){ r.reasons.push({c:"r3", t:"AI判定无关"}); r.aiReason=v.reason||""; confirmed++; }
+      else { r.aiReason="AI认为相关："+(v.reason||""); cleared++; }
+    });
+    renderStats(getRules()); renderTable();
+    setAiStatus(`✅ AI 复核完成：确认无关 ${confirmed} 个，澄清为相关 ${cleared} 个。`, "var(--ok)");
+  } catch(err){ setAiStatus("解析/网络出错："+err.message+"（若是CORS跨域，该服务商不支持网页直连）","var(--danger)"); }
+  btn.disabled = false;
+};
 
 // ---------- 导出 ----------
 document.getElementById("export").onclick = () => {
