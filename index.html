@@ -7,58 +7,32 @@
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   :root {
-    --bg: #f5f6f8;
-    --card: #ffffff;
-    --primary: #ff9900;
-    --primary-dark: #e88a00;
-    --danger: #e53935;
-    --ok: #43a047;
-    --text: #232f3e;
-    --muted: #6b7280;
-    --border: #e3e6ea;
+    --bg: #f5f6f8; --card: #ffffff; --primary: #ff9900; --primary-dark: #e88a00;
+    --danger: #e53935; --ok: #43a047; --text: #232f3e; --muted: #6b7280; --border: #e3e6ea;
   }
   * { box-sizing: border-box; }
-  body {
-    margin: 0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
-    background: var(--bg); color: var(--text); line-height: 1.5;
-  }
-  header {
-    background: var(--text); color: #fff; padding: 18px 28px;
-    display: flex; align-items: center; gap: 12px;
-  }
+  body { margin: 0; font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif; background: var(--bg); color: var(--text); line-height: 1.5; }
+  header { background: var(--text); color: #fff; padding: 18px 28px; display: flex; align-items: center; gap: 12px; }
   header h1 { font-size: 19px; margin: 0; font-weight: 600; }
   header .badge { background: var(--primary); color: #232f3e; font-size: 12px; padding: 2px 8px; border-radius: 4px; font-weight: 700; }
-  .wrap { max-width: 1240px; margin: 22px auto; padding: 0 20px; }
-  .card {
-    background: var(--card); border: 1px solid var(--border); border-radius: 10px;
-    padding: 20px 22px; margin-bottom: 18px;
-  }
+  .wrap { max-width: 1280px; margin: 22px auto; padding: 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px 22px; margin-bottom: 18px; }
   .card h2 { font-size: 15px; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; }
   .card h2 .num { background: var(--primary); color: #fff; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
-  label.field { display: block; font-size: 13px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  label.field { display: block; font-size: 13px; margin-top: 8px; }
   label.field span { display: block; color: var(--muted); margin-bottom: 5px; }
   label.field small { color: var(--muted); font-weight: 400; }
-  input[type=number], input[type=text], textarea {
-    width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px;
-    font-size: 14px; font-family: inherit;
-  }
-  textarea { resize: vertical; min-height: 70px; }
-  .toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; padding: 8px 0; }
+  input[type=number], input[type=text], textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; font-family: inherit; }
+  textarea { resize: vertical; }
+  .toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; padding: 4px 0; }
   .toggle input { width: 16px; height: 16px; accent-color: var(--primary); }
-  .drop {
-    border: 2px dashed var(--border); border-radius: 10px; padding: 36px; text-align: center;
-    color: var(--muted); cursor: pointer; transition: .15s; background: #fafbfc;
-  }
+  .drop { border: 2px dashed var(--border); border-radius: 10px; padding: 32px; text-align: center; color: var(--muted); cursor: pointer; transition: .15s; background: #fafbfc; }
   .drop.hover { border-color: var(--primary); background: #fff8ec; color: var(--text); }
   .drop strong { color: var(--primary); }
-  .btn {
-    background: var(--primary); color: #fff; border: none; padding: 10px 20px; border-radius: 7px;
-    font-size: 14px; font-weight: 600; cursor: pointer;
-  }
+  .btn { background: var(--primary); color: #fff; border: none; padding: 10px 20px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; }
   .btn:hover { background: var(--primary-dark); }
   .btn.ghost { background: #fff; color: var(--text); border: 1px solid var(--border); }
-  .btn:disabled { opacity: .5; cursor: not-allowed; }
   .stats { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
   .stat { flex: 1; min-width: 130px; background: #fafbfc; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
   .stat .v { font-size: 24px; font-weight: 700; }
@@ -66,10 +40,10 @@
   .stat.flag .v { color: var(--danger); }
   table { width: 100%; border-collapse: collapse; font-size: 13px; }
   th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
-  th { background: #fafbfc; font-weight: 600; position: sticky; top: 0; cursor: pointer; user-select: none; }
+  th { background: #fafbfc; font-weight: 600; position: sticky; top: 0; cursor: pointer; user-select: none; z-index: 1; }
   th:hover { background: #f0f1f3; }
-  td.term { white-space: normal; max-width: 320px; }
-  .scroll { overflow-x: auto; max-height: 560px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
+  td.term { white-space: normal; max-width: 300px; }
+  .scroll { overflow-x: auto; max-height: 580px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px; }
   .tag { display: inline-block; font-size: 11px; padding: 2px 7px; border-radius: 4px; margin: 1px 2px 1px 0; font-weight: 600; }
   .tag.r1 { background: #ffeaea; color: #c62828; }
   .tag.r2 { background: #fff3e0; color: #ef6c00; }
@@ -85,6 +59,7 @@
   .err { background: #ffeaea; color: #c62828; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; }
   .colmap { font-size: 12px; color: var(--muted); margin-top: 10px; }
   .colmap code { background: #f0f1f3; padding: 1px 5px; border-radius: 3px; color: var(--text); }
+  .sub { font-size: 12px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -95,45 +70,56 @@
 
 <div class="wrap">
 
-  <!-- 1. 规则设置 -->
+  <!-- 1. listing 内容 -->
   <div class="card">
-    <h2><span class="num">1</span>加否规则与阈值</h2>
+    <h2><span class="num">1</span>你的 Listing 内容（用于判断「无关词」）</h2>
+    <label class="field"><span>把产品<b>标题 + 五点描述</b>粘贴到这里（中英文都行，越全越准）</span>
+      <textarea id="listing" rows="5" placeholder="例如：&#10;Lavender Scented Dog Pee Pads for Puppy Training, Super Absorbent Leak-Proof Potty Pads...&#10;- Extra absorbent core locks in moisture&#10;- Lavender scent neutralizes odor&#10;..."></textarea></label>
+    <label class="field"><span>额外补充的「相关词」（可选，逗号/换行分隔）<small>—— 同义词/变体，避免误判，如 wee pads, puppy pad</small></span>
+      <textarea id="extraRelevant" rows="2" placeholder="wee pads, potty pad, training pad"></textarea></label>
+    <p class="hint">工具会从这里提取词库；搜索词里若<b>没有任何词</b>命中词库，就标记为「疑似无关」，供你人工确认（不会盲目加否）。</p>
+  </div>
+
+  <!-- 2. 规则设置 -->
+  <div class="card">
+    <h2><span class="num">2</span>加否规则与阈值</h2>
     <div class="grid">
       <div>
         <label class="toggle"><input type="checkbox" id="r1on" checked> <b>规则①</b> 点击多不出单</label>
-        <label class="field"><span>点击数 ≥</span><input type="number" id="r1clicks" value="10" min="1"></label>
-        <p class="hint">点击达到阈值但订单为 0，判定为烧钱无转化。</p>
+        <label class="field"><span>累计点击数 ≥</span><input type="number" id="r1clicks" value="10" min="1"></label>
+        <p class="hint">汇总后点击达到阈值但订单为 0 —— 烧钱无转化，核心加否依据。</p>
       </div>
       <div>
         <label class="toggle"><input type="checkbox" id="r2on" checked> <b>规则②</b> 转化率过低</label>
         <label class="field"><span>转化率 &lt; (%)</span><input type="number" id="r2cvr" value="3" min="0" step="0.1"></label>
-        <label class="field"><span>且点击数 ≥ <small>(样本足够才判断)</small></span><input type="number" id="r2clicks" value="15" min="1"></label>
-        <p class="hint">有一定点击量但转化率低于阈值。</p>
+        <label class="field"><span>且累计点击 ≥ <small>(样本足够才判断)</small></span><input type="number" id="r2clicks" value="15" min="1"></label>
+        <p class="hint">有订单但转化率低于阈值（点击量足够才可信）。</p>
       </div>
       <div>
-        <label class="toggle"><input type="checkbox" id="r3on" checked> <b>规则③</b> 无关词黑名单</label>
-        <label class="field"><span>无关词 / 竞品词（每行一个，或逗号分隔）</span>
-          <textarea id="r3words" placeholder="例如：&#10;free&#10;cheap&#10;competitor brand&#10;某竞品牌"></textarea></label>
-        <p class="hint">搜索词包含任一关键词即判定无关（不区分大小写）。</p>
+        <label class="toggle"><input type="checkbox" id="r3on" checked> <b>规则③</b> 疑似无关词</label>
+        <label class="field"><span>额外黑名单（竞品/明确无关词，命中即标记）</span>
+          <textarea id="r3words" rows="3" placeholder="free, cheap, 某竞品牌"></textarea></label>
+        <p class="hint">基于上方 Listing 词库判断 + 这里的硬黑名单。</p>
       </div>
     </div>
+    <label class="toggle" style="margin-top:14px"><input type="checkbox" id="aggOn" checked> <b>按搜索词汇总多天数据后再判断</b> <span class="sub">（官方报告是按天明细，强烈建议开启）</span></label>
   </div>
 
-  <!-- 2. 上传 -->
+  <!-- 3. 上传 -->
   <div class="card">
-    <h2><span class="num">2</span>上传搜索词报告</h2>
+    <h2><span class="num">3</span>上传搜索词报告</h2>
     <div class="drop" id="drop">
       <p>📄 <strong>点击选择</strong> 或拖拽文件到此处</p>
-      <p style="font-size:13px;margin:4px 0 0">支持 .xlsx / .xls / .csv（亚马逊广告→搜索词报告导出）</p>
+      <p style="font-size:13px;margin:4px 0 0">支持 .xlsx / .xls / .csv（广告 → 搜索词报告导出）</p>
     </div>
     <input type="file" id="file" accept=".xlsx,.xls,.csv" class="hidden">
     <div id="colmap" class="colmap"></div>
     <div id="err"></div>
   </div>
 
-  <!-- 3. 结果 -->
+  <!-- 4. 结果 -->
   <div class="card hidden" id="resultCard">
-    <h2><span class="num">3</span>分析结果</h2>
+    <h2><span class="num">4</span>分析结果</h2>
     <div class="stats" id="stats"></div>
     <div class="toolbar">
       <span class="filter-chip active" data-f="flagged">仅看建议加否</span>
@@ -144,7 +130,7 @@
     <div class="scroll">
       <table id="tbl"><thead></thead><tbody></tbody></table>
     </div>
-    <p class="hint">点击表头可排序。导出的清单可直接整理后回到亚马逊后台批量添加否定关键词。</p>
+    <p class="hint">点击表头排序。<span class="tag r1">红</span>烧钱无单 <span class="tag r2">橙</span>转化低 <span class="tag r3">紫</span>疑似无关（建议人工复核后再否）。</p>
   </div>
 
 </div>
@@ -152,28 +138,27 @@
 <script>
 // ---------- 列名智能匹配 ----------
 const COLDEFS = {
-  term:    ["customer search term","search term","客户搜索词","搜索词","用户搜索词"],
-  impr:    ["impressions","展示量","曝光量"],
-  clicks:  ["clicks","点击量","点击次数","点击"],
-  spend:   ["spend","花费","支出","广告花费"],
-  sales:   ["7 day total sales","total sales","sales","销售额","总销售额","7天总销售额"],
-  orders:  ["7 day total orders","total orders","orders","订单","订单量","订单数","7天总订单数","total orders (#)","7 day total orders (#)"],
-  acos:    ["total advertising cost of sales","acos","广告成本销售比","acos%"],
-  cvr:     ["7 day conversion rate","conversion rate","转化率","cvr"],
-  campaign:["campaign name","广告活动名称","广告活动","campaign"],
-  matchType:["match type","匹配类型"],
-  targeting:["targeting","投放","定位"]
+  term:    ["客户搜索词","customer search term","search term","搜索词","用户搜索词"],
+  impr:    ["展示量","impressions","曝光量"],
+  clicks:  ["点击量","clicks","点击次数"],
+  spend:   ["花费","spend","支出","广告花费"],
+  sales:   ["7天总销售额","7 day total sales","total sales","sales","销售额","总销售额"],
+  orders:  ["7天总订单数","7 day total orders","total orders","orders","订单量","订单数","订单"],
+  acos:    ["广告投入产出比acos总计","total advertising cost of sales","acos","广告成本销售比"],
+  cvr:     ["7天的转化率","7 day conversion rate","conversion rate","转化率","cvr"],
+  campaign:["广告活动名称","campaign name","广告活动","campaign"],
+  matchType:["匹配类型","match type"]
 };
-function normHead(s){ return String(s||"").toLowerCase().replace(/[\s%（）()#]/g,"").trim(); }
+function normHead(s){ return String(s||"").toLowerCase().replace(/[\s%（）()#\-_./]/g,"").trim(); }
 function matchColumns(headers){
-  const map = {};
+  const map = {}, used = new Set();
   const normd = headers.map(normHead);
   for (const key in COLDEFS){
     for (const cand of COLDEFS[key]){
       const nc = normHead(cand);
-      let idx = normd.findIndex(h => h === nc);
-      if (idx === -1) idx = normd.findIndex(h => h.includes(nc) || nc.includes(h) && h.length>2);
-      if (idx !== -1){ map[key] = idx; break; }
+      let idx = normd.findIndex((h,i)=> !used.has(i) && h === nc);
+      if (idx === -1) idx = normd.findIndex((h,i)=> !used.has(i) && h.length>2 && (h.includes(nc) || nc.includes(h)));
+      if (idx !== -1){ map[key] = idx; used.add(idx); break; }
     }
   }
   return map;
@@ -185,21 +170,38 @@ function toNum(v){
   return isNaN(n) ? 0 : n;
 }
 
+// ---------- 相关性引擎 ----------
+const STOP = new Set(("a an the and or for of to in on with without your you my our this that these those is are be by from at as it its size pack count pcs pc set new best top quality high super extra large small medium x xl xxl inch inches cm mm ml oz lb pcs piece pieces 个 包 装 片 张 的 和 与 适用 用于").split(/\s+/));
+function stemTok(w){ return w.replace(/ies$/,"y").replace(/(ses|xes|zes|ches|shes)$/,"").replace(/s$/,""); }
+function tokenize(text){
+  const out = new Set();
+  String(text||"").toLowerCase().replace(/[^a-z0-9一-龥]+/g," ").split(/\s+/).forEach(w=>{
+    if (!w) return;
+    if (/^[a-z]/.test(w)){ if (w.length>=2 && !STOP.has(w)) out.add(stemTok(w)); }
+    else { for (const ch of w) if (!/[0-9\s]/.test(ch) && !STOP.has(ch)) out.add(ch); } // 中文逐字
+  });
+  return out;
+}
+function isRelevant(term, lib){
+  if (!lib.size) return true; // 没填 listing 就不判断无关
+  for (const t of tokenize(term)) if (lib.has(t)) return true;
+  return false;
+}
+
 // ---------- 状态 ----------
-let rows = [];        // 解析后的标准化数据
+let rawRows = [];   // 原始每行
+let rows = [];      // 分析用（可能已汇总）
 let colMap = {};
 let currentFilter = "flagged";
 let sortKey = "spend", sortDir = -1;
 
 // ---------- 文件读取 ----------
-const drop = document.getElementById("drop");
-const fileInput = document.getElementById("file");
+const drop = document.getElementById("drop"), fileInput = document.getElementById("file");
 drop.onclick = () => fileInput.click();
 drop.ondragover = e => { e.preventDefault(); drop.classList.add("hover"); };
 drop.ondragleave = () => drop.classList.remove("hover");
 drop.ondrop = e => { e.preventDefault(); drop.classList.remove("hover"); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); };
 fileInput.onchange = e => { if (e.target.files[0]) handleFile(e.target.files[0]); };
-
 function showErr(msg){ document.getElementById("err").innerHTML = msg ? `<div class="err">${msg}</div>` : ""; }
 
 function handleFile(file){
@@ -207,62 +209,65 @@ function handleFile(file){
   const reader = new FileReader();
   reader.onload = e => {
     try {
-      if (typeof XLSX === "undefined") { showErr("解析库未能加载（可能是网络限制）。请改用 CSV 文件，或检查网络后刷新页面。"); return; }
+      if (typeof XLSX === "undefined"){ showErr("解析库未能加载（网络受限）。请改用 CSV 文件，或联网后刷新。"); return; }
       const wb = XLSX.read(e.target.result, { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      let aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" });
-      aoa = aoa.filter(r => r.some(c => String(c).trim() !== ""));
-      // 找到表头行（包含“搜索词”或 search term 的行）
-      let hrow = aoa.findIndex(r => r.some(c => /搜索词|search\s*term/i.test(String(c))));
+      let aoa = XLSX.utils.sheet_to_json(ws, { header: 1, defval: "" }).filter(r => r.some(c => String(c).trim() !== ""));
+      let hrow = aoa.findIndex(r => r.some(c => /客户搜索词|搜索词|search\s*term/i.test(String(c))));
       if (hrow === -1) hrow = 0;
       const headers = aoa[hrow];
       colMap = matchColumns(headers);
-      if (colMap.term == null){ showErr("未识别到“搜索词”列，请确认上传的是搜索词报告。已识别表头：" + headers.join(" | ")); return; }
-      const dataRows = aoa.slice(hrow + 1);
-      rows = dataRows.map(r => buildRow(r)).filter(r => r.term);
+      if (colMap.term == null){ showErr("未识别到「搜索词」列。已识别表头：" + headers.join(" | ")); return; }
+      rawRows = aoa.slice(hrow + 1).map(buildRow).filter(r => r.term);
       renderColMap(headers);
       analyze();
     } catch(err){ showErr("文件解析失败：" + err.message); }
   };
   reader.readAsArrayBuffer(file);
 }
-
 function buildRow(r){
   const g = k => colMap[k] != null ? r[colMap[k]] : undefined;
-  const clicks = toNum(g("clicks"));
-  const orders = toNum(g("orders"));
-  const spend  = toNum(g("spend"));
-  const sales  = toNum(g("sales"));
-  let cvr = colMap.cvr != null ? toNum(g("cvr")) : (clicks > 0 ? orders / clicks * 100 : 0);
-  // 若转化率列是 0~1 小数，转成百分比
-  if (colMap.cvr != null && cvr > 0 && cvr <= 1 && orders/Math.max(clicks,1) <= 1) cvr = cvr * 100;
-  let acos = colMap.acos != null ? toNum(g("acos")) : (sales > 0 ? spend / sales * 100 : 0);
-  if (colMap.acos != null && acos > 0 && acos <= 1) acos = acos * 100;
   return {
     term: String(g("term")||"").trim(),
-    impr: toNum(g("impr")), clicks, spend, sales, orders, cvr, acos,
+    impr: toNum(g("impr")), clicks: toNum(g("clicks")), spend: toNum(g("spend")),
+    sales: toNum(g("sales")), orders: toNum(g("orders")),
+    rawCvr: colMap.cvr!=null ? toNum(g("cvr")) : null,
+    rawAcos: colMap.acos!=null ? toNum(g("acos")) : null,
     campaign: String(g("campaign")||""), matchType: String(g("matchType")||"")
   };
 }
-
+function finalize(r){ // 计算 cvr / acos（统一用累计值重算更可靠）
+  r.cvr = r.clicks>0 ? r.orders/r.clicks*100 : 0;
+  r.acos = r.sales>0 ? r.spend/r.sales*100 : 0;
+  return r;
+}
+function aggregate(list){
+  const m = new Map();
+  for (const r of list){
+    const key = r.term.toLowerCase();
+    if (!m.has(key)) m.set(key, { term:r.term, impr:0,clicks:0,spend:0,sales:0,orders:0, days:0, campaign:r.campaign, matchType:r.matchType });
+    const a = m.get(key);
+    a.impr+=r.impr; a.clicks+=r.clicks; a.spend+=r.spend; a.sales+=r.sales; a.orders+=r.orders; a.days++;
+  }
+  return [...m.values()].map(finalize);
+}
 function renderColMap(headers){
   const labels = { term:"搜索词", clicks:"点击", spend:"花费", sales:"销售额", orders:"订单", cvr:"转化率", acos:"ACOS" };
   const parts = [];
-  for (const k in labels){
-    if (colMap[k] != null) parts.push(`${labels[k]} ← <code>${headers[colMap[k]]}</code>`);
-    else if (k==="cvr"||k==="acos") parts.push(`${labels[k]} ← <code>自动计算</code>`);
-  }
-  document.getElementById("colmap").innerHTML = "已识别列：" + parts.join("　");
+  for (const k in labels) if (colMap[k]!=null) parts.push(`${labels[k]} ← <code>${headers[colMap[k]]}</code>`);
+  document.getElementById("colmap").innerHTML = "已识别列：" + parts.join("　") + `　|　原始行数 ${rawRows.length}`;
 }
 
 // ---------- 分析 ----------
 function getRules(){
-  const blackRaw = document.getElementById("r3words").value;
-  const black = blackRaw.split(/[\n,，]/).map(s=>s.trim().toLowerCase()).filter(Boolean);
+  const parse = s => s.split(/[\n,，]/).map(x=>x.trim().toLowerCase()).filter(Boolean);
+  const lib = tokenize(document.getElementById("listing").value);
+  parse(document.getElementById("extraRelevant").value).forEach(w => tokenize(w).forEach(t=>lib.add(t)));
   return {
+    agg: document.getElementById("aggOn").checked,
     r1: { on: r1on.checked, clicks: toNum(r1clicks.value) },
     r2: { on: r2on.checked, cvr: toNum(r2cvr.value), clicks: toNum(r2clicks.value) },
-    r3: { on: r3on.checked, words: black }
+    r3: { on: r3on.checked, words: parse(document.getElementById("r3words").value), lib }
   };
 }
 function evalRow(row, rules){
@@ -271,34 +276,35 @@ function evalRow(row, rules){
     reasons.push({ c:"r1", t:`点击${row.clicks}无单` });
   if (rules.r2.on && row.clicks >= rules.r2.clicks && row.orders > 0 && row.cvr < rules.r2.cvr)
     reasons.push({ c:"r2", t:`转化率${row.cvr.toFixed(1)}%偏低` });
-  if (rules.r3.on && rules.r3.words.length){
+  if (rules.r3.on){
     const lt = row.term.toLowerCase();
     const hit = rules.r3.words.find(w => lt.includes(w));
-    if (hit) reasons.push({ c:"r3", t:`含无关词「${hit}」` });
+    if (hit) reasons.push({ c:"r3", t:`含黑名单「${hit}」` });
+    else if (rules.r3.lib.size && !isRelevant(row.term, rules.r3.lib))
+      reasons.push({ c:"r3", t:`疑似无关` });
   }
   return reasons;
 }
-
 function analyze(){
+  if (!rawRows.length) return;
   const rules = getRules();
+  rows = rules.agg ? aggregate(rawRows) : rawRows.map(r=>finalize({...r}));
   rows.forEach(r => r.reasons = evalRow(r, rules));
   document.getElementById("resultCard").classList.remove("hidden");
-  renderStats();
+  renderStats(rules);
   renderTable();
 }
-
-function renderStats(){
+function renderStats(rules){
   const flagged = rows.filter(r => r.reasons.length);
-  const wasteSpend = flagged.reduce((s,r)=> s + (r.orders===0 ? r.spend : 0), 0);
+  const waste = flagged.reduce((s,r)=> s + (r.orders===0 ? r.spend : 0), 0);
   const html = [
-    ["搜索词总数", rows.length, ""],
+    [rules.agg?"搜索词数(去重)":"记录数", rows.length, ""],
     ["建议加否", flagged.length, "flag"],
-    ["无效花费(估)", "$" + wasteSpend.toFixed(2), "flag"],
+    ["无效花费(估)", "$" + waste.toFixed(2), "flag"],
     ["总花费", "$" + rows.reduce((s,r)=>s+r.spend,0).toFixed(2), ""]
   ].map(([l,v,c]) => `<div class="stat ${c}"><div class="v">${v}</div><div class="l">${l}</div></div>`).join("");
   document.getElementById("stats").innerHTML = html;
 }
-
 const COLS = [
   ["term","搜索词","term"],["clicks","点击","num"],["orders","订单","num"],
   ["spend","花费","num"],["sales","销售额","num"],["cvr","转化率%","num"],
@@ -310,9 +316,9 @@ function renderTable(){
   let list = currentFilter === "flagged" ? rows.filter(r=>r.reasons.length) : rows.slice();
   if (q) list = list.filter(r => r.term.toLowerCase().includes(q));
   list.sort((a,b)=>{
-    let va=a[sortKey], vb=b[sortKey];
-    if (sortKey==="term"){ va=va||""; vb=vb||""; return va.localeCompare(vb)*sortDir; }
-    if (sortKey==="reasons"){ va=a.reasons.length; vb=b.reasons.length; }
+    if (sortKey==="term") return (a.term||"").localeCompare(b.term||"")*sortDir;
+    let va = sortKey==="reasons" ? a.reasons.length : a[sortKey];
+    let vb = sortKey==="reasons" ? b.reasons.length : b[sortKey];
     return (va-vb)*sortDir;
   });
   tbl.querySelector("thead").innerHTML = "<tr>" + COLS.map(c=>{
@@ -324,20 +330,15 @@ function renderTable(){
     if (sortKey===k) sortDir*=-1; else { sortKey=k; sortDir = k==="term"?1:-1; }
     renderTable();
   });
-  const tagName = { r1:"r1", r2:"r2", r3:"r3" };
   tbl.querySelector("tbody").innerHTML = list.map(r=>{
-    const reasons = r.reasons.map(x=>`<span class="tag ${tagName[x.c]}">${x.t}</span>`).join("") || "—";
-    const fmt = (v,d=2)=> Number(v).toFixed(d);
+    const reasons = r.reasons.map(x=>`<span class="tag ${x.c}">${x.t}</span>`).join("") || "—";
+    const f = (v,d=2)=> Number(v).toFixed(d);
     return `<tr class="${r.reasons.length?'flagged':''}">
       <td class="term">${escapeHtml(r.term)}</td>
-      <td class="num-cell">${r.clicks}</td>
-      <td class="num-cell">${r.orders}</td>
-      <td class="num-cell">${fmt(r.spend)}</td>
-      <td class="num-cell">${fmt(r.sales)}</td>
-      <td class="num-cell">${fmt(r.cvr,1)}</td>
-      <td class="num-cell">${r.acos?fmt(r.acos,1):'—'}</td>
-      <td>${reasons}</td>
-    </tr>`;
+      <td class="num-cell">${r.clicks}</td><td class="num-cell">${r.orders}</td>
+      <td class="num-cell">${f(r.spend)}</td><td class="num-cell">${f(r.sales)}</td>
+      <td class="num-cell">${f(r.cvr,1)}</td><td class="num-cell">${r.acos?f(r.acos,1):'—'}</td>
+      <td>${reasons}</td></tr>`;
   }).join("") || `<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">没有符合条件的搜索词</td></tr>`;
 }
 function escapeHtml(s){ return s.replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
@@ -348,9 +349,8 @@ document.querySelectorAll(".filter-chip").forEach(chip => chip.onclick = () => {
   chip.classList.add("active"); currentFilter = chip.dataset.f; renderTable();
 });
 document.getElementById("search").oninput = renderTable;
-// 改阈值即时重算
-["r1on","r1clicks","r2on","r2cvr","r2clicks","r3on","r3words"].forEach(id=>{
-  document.getElementById(id).addEventListener("input", ()=>{ if (rows.length) analyze(); });
+["r1on","r1clicks","r2on","r2cvr","r2clicks","r3on","r3words","aggOn","listing","extraRelevant"].forEach(id=>{
+  document.getElementById(id).addEventListener("input", ()=>{ if (rawRows.length) analyze(); });
 });
 
 // ---------- 导出 ----------
@@ -360,10 +360,9 @@ document.getElementById("export").onclick = () => {
   const head = ["搜索词","点击","订单","花费","销售额","转化率%","ACOS%","加否原因","建议匹配类型","广告活动"];
   const lines = [head.join(",")];
   flagged.forEach(r=>{
-    const row = [r.term, r.clicks, r.orders, r.spend.toFixed(2), r.sales.toFixed(2),
+    lines.push([r.term, r.clicks, r.orders, r.spend.toFixed(2), r.sales.toFixed(2),
       r.cvr.toFixed(1), r.acos?r.acos.toFixed(1):"", r.reasons.map(x=>x.t).join(" / "),
-      "精准否定(Negative Exact)", r.campaign];
-    lines.push(row.map(csvCell).join(","));
+      "精准否定(Negative Exact)", r.campaign].map(csvCell).join(","));
   });
   const blob = new Blob(["﻿"+lines.join("\n")], { type:"text/csv;charset=utf-8" });
   const a = document.createElement("a");
