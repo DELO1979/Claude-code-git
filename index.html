@@ -27,7 +27,7 @@
   textarea { resize: vertical; }
   .toggle { display: flex; align-items: center; gap: 8px; font-size: 14px; cursor: pointer; padding: 4px 0; }
   .toggle input { width: 16px; height: 16px; accent-color: var(--primary); }
-  .drop { border: 2px dashed var(--border); border-radius: 10px; padding: 32px; text-align: center; color: var(--muted); cursor: pointer; transition: .15s; background: #fafbfc; }
+  .drop { display: block; border: 2px dashed var(--border); border-radius: 10px; padding: 32px; text-align: center; color: var(--muted); cursor: pointer; transition: .15s; background: #fafbfc; }
   .drop.hover { border-color: var(--primary); background: #fff8ec; color: var(--text); }
   .drop strong { color: var(--primary); }
   .btn { background: var(--primary); color: #fff; border: none; padding: 10px 20px; border-radius: 7px; font-size: 14px; font-weight: 600; cursor: pointer; }
@@ -53,7 +53,7 @@
   .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
   .toolbar .grow { flex: 1; }
   .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
-  .hidden { display: none; }
+  .hidden { position: absolute; opacity: 0; width: 0; height: 0; overflow: hidden; }
   .filter-chip { font-size: 13px; padding: 6px 12px; border: 1px solid var(--border); border-radius: 20px; cursor: pointer; background: #fff; }
   .filter-chip.active { background: var(--text); color: #fff; border-color: var(--text); }
   .err { background: #ffeaea; color: #c62828; padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-top: 12px; }
@@ -146,10 +146,11 @@
   <!-- 4. 上传 -->
   <div class="card">
     <h2><span class="num">4</span>上传搜索词报告</h2>
-    <div class="drop" id="drop">
+    <!-- label for="file" 直接触发文件选择，无需 JS click，各浏览器兼容性最好 -->
+    <label class="drop" id="drop" for="file">
       <p>📄 <strong>点击选择</strong> 或拖拽文件到此处</p>
       <p style="font-size:13px;margin:4px 0 0">支持 .xlsx / .xls / .csv（广告 → 搜索词报告导出）</p>
-    </div>
+    </label>
     <input type="file" id="file" accept=".xlsx,.xls,.csv" class="hidden">
     <div id="colmap" class="colmap"></div>
     <div id="err"></div>
@@ -218,30 +219,33 @@ function tokenize(text){
   String(text||"").toLowerCase().replace(/[^a-z0-9一-龥]+/g," ").split(/\s+/).forEach(w=>{
     if (!w) return;
     if (/^[a-z]/.test(w)){ if (w.length>=2 && !STOP.has(w)) out.add(stemTok(w)); }
-    else { for (const ch of w) if (!/[0-9\s]/.test(ch) && !STOP.has(ch)) out.add(ch); } // 中文逐字
+    else { for (const ch of w) if (!/[0-9\s]/.test(ch) && !STOP.has(ch)) out.add(ch); }
   });
   return out;
 }
 function isRelevant(term, lib){
-  if (!lib.size) return true; // 没填 listing 就不判断无关
+  if (!lib.size) return true;
   for (const t of tokenize(term)) if (lib.has(t)) return true;
   return false;
 }
 
 // ---------- 状态 ----------
-let rawRows = [];   // 原始每行
-let rows = [];      // 分析用（可能已汇总）
-let colMap = {};
-let currentFilter = "flagged";
-let sortKey = "spend", sortDir = -1;
+let rawRows = [], rows = [], colMap = {};
+let currentFilter = "flagged", sortKey = "spend", sortDir = -1;
 
 // ---------- 文件读取 ----------
-const drop = document.getElementById("drop"), fileInput = document.getElementById("file");
-drop.onclick = () => fileInput.click();
+const drop = document.getElementById("drop");
+const fileInput = document.getElementById("file");
+
+// 拖拽支持
 drop.ondragover = e => { e.preventDefault(); drop.classList.add("hover"); };
 drop.ondragleave = () => drop.classList.remove("hover");
-drop.ondrop = e => { e.preventDefault(); drop.classList.remove("hover"); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); };
+drop.ondrop = e => {
+  e.preventDefault(); drop.classList.remove("hover");
+  if (e.dataTransfer.files[0]) { e.stopPropagation(); handleFile(e.dataTransfer.files[0]); }
+};
 fileInput.onchange = e => { if (e.target.files[0]) handleFile(e.target.files[0]); };
+
 function showErr(msg){ document.getElementById("err").innerHTML = msg ? `<div class="err">${msg}</div>` : ""; }
 
 function handleFile(file){
@@ -276,7 +280,7 @@ function buildRow(r){
     campaign: String(g("campaign")||""), matchType: String(g("matchType")||"")
   };
 }
-function finalize(r){ // 计算 cvr / acos（统一用累计值重算更可靠）
+function finalize(r){
   r.cvr = r.clicks>0 ? r.orders/r.clicks*100 : 0;
   r.acos = r.sales>0 ? r.spend/r.sales*100 : 0;
   return r;
@@ -433,10 +437,9 @@ document.getElementById("aiReview").onclick = async () => {
   const listing = document.getElementById("listing").value.trim();
   if (!key){ setAiStatus("请先填写 API Key。","var(--danger)"); return; }
   if (!listing){ setAiStatus("请先在第1栏粘贴 Listing 标题+五点，AI 才能判断相关性。","var(--danger)"); return; }
-  // 取所有「疑似无关」的词；没有就拿点击高的前若干词兜底
   let targets = rows.filter(r => r.reasons.some(x => x.t==="疑似无关"));
   if (!targets.length){ setAiStatus("当前没有被标记「疑似无关」的词。可在第1栏填 Listing 后重新分析，或本地引擎已认为都相关。"); return; }
-  targets = targets.slice(0, 60); // 控制单次请求量
+  targets = targets.slice(0, 60);
   const btn = document.getElementById("aiReview"); btn.disabled = true;
   setAiStatus(`正在请求 ${model} 判断 ${targets.length} 个词…`);
   const format = document.getElementById("aiFormat").value;
@@ -446,7 +449,7 @@ document.getElementById("aiReview").onclick = async () => {
   if (format === "anthropic"){
     headers = { "Content-Type":"application/json", "x-api-key":key, "anthropic-version":"2023-06-01", "anthropic-dangerous-direct-browser-access":"true" };
     body = { model, max_tokens:4000, system:sys, messages:[{role:"user",content:user}] };
-  } else { // openai 兼容
+  } else {
     headers = { "Content-Type":"application/json", "Authorization":"Bearer "+key };
     body = { model, temperature:0, messages:[{role:"system",content:sys},{role:"user",content:user}] };
   }
@@ -462,7 +465,6 @@ document.getElementById("aiReview").onclick = async () => {
     targets.forEach(r => {
       const v = map.get(r.term.toLowerCase().trim());
       if (!v) return;
-      // 移除本地的「疑似无关」标记，换成 AI 结论
       r.reasons = r.reasons.filter(x => x.t!=="疑似无关");
       if (v.relevant === false){ r.reasons.push({c:"r3", t:"AI判定无关"}); r.aiReason=v.reason||""; confirmed++; }
       else { r.aiReason="AI认为相关："+(v.reason||""); cleared++; }
