@@ -189,7 +189,7 @@ const COLDEFS = {
   campaign:["广告活动名称","campaign name","广告活动","campaign"],
   matchType:["匹配类型","match type"]
 };
-function normHead(s){ return String(s||"").toLowerCase().replace(/[\s%（）()#\-_./]/g,"").trim(); }
+function normHead(s){ return String(s||"").toLowerCase().replace(/[\s%（）()#\-_.\/]/g,"").trim(); }
 function matchColumns(headers){
   const map = {}, used = new Set();
   const normd = headers.map(normHead);
@@ -490,7 +490,7 @@ document.getElementById("export").onclick = () => {
   a.download = "加否清单_" + new Date().toISOString().slice(0,10) + ".csv";
   a.click();
 };
-function csvCell(v){ const s=String(v??""); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+function csvCell(v){ const s=String(v??""); return /[",\n]/.test(s) ? '"'+s.replace(/"/ g,'""')+'"' : s; }
 </script>
 </body>
 </html>
