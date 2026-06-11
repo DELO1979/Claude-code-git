@@ -490,7 +490,7 @@ document.getElementById("export").onclick = () => {
   a.download = "加否清单_" + new Date().toISOString().slice(0,10) + ".csv";
   a.click();
 };
-function csvCell(v){ const s=String(v??""); return /[",\n]/.test(s) ? '"'+s.replace(/"/ g,'""')+'"' : s; }
+function csvCell(v){ const s=String(v??""); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
 </script>
 </body>
 </html>
